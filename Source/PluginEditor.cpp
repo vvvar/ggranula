@@ -15,7 +15,7 @@ GGranulaAudioProcessorEditor::GGranulaAudioProcessorEditor (GGranulaAudioProcess
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (268, 268);
 }
 
 GGranulaAudioProcessorEditor::~GGranulaAudioProcessorEditor()
@@ -32,7 +32,8 @@ void GGranulaAudioProcessorEditor::paint (juce::Graphics& g)
     g.setFont (15.0f);
     g.drawFittedText ("Da, eto jestko", getLocalBounds(), juce::Justification::centred, 1);
     
-    Image background = ImageCache::getFromMemory(BinaryData::krug_jpg, BinaryData::krug_jpgSize);
+    //Image background = ImageCache::getFromMemory(BinaryData::krug_jpg, BinaryData::krug_jpgSize);
+    Image background = ImageCache::getFromMemory(BinaryData::BroVoging_jpg, BinaryData::BroVoging_jpgSize);
     g.drawImageAt (background, 0, 0);
 }
 

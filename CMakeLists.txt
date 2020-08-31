@@ -69,6 +69,7 @@ jucer_project_files("GGranula/Source"
   x         .         .         "Source/PluginEditor.cpp"
   .         .         .         "Source/PluginEditor.h"
   .         x         x         "Source/krug.jpg"
+  .         x         x         "Source/BroVoging.jpg"
 )
 
 jucer_project_module(

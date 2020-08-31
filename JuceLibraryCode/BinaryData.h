@@ -11,8 +11,11 @@ namespace BinaryData
     extern const char*   krug2_jpg;
     const int            krug2_jpgSize = 230086;
 
+    extern const char*   BroVoging_jpg;
+    const int            BroVoging_jpgSize = 26916;
+
     // Number of elements in the namedResourceList and originalFileNames arrays.
-    const int namedResourceListSize = 1;
+    const int namedResourceListSize = 2;
 
     // Points to the start of a list of resource names.
     extern const char* namedResourceList[];

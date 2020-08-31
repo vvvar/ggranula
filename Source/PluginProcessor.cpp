@@ -35,20 +35,29 @@ GGranulaAudioProcessor::GGranulaAudioProcessor()
     
     addParameter (amp_attack = new juce::AudioParameterFloat ("amp_attack",
                                                               "AMP - Attack",
-                                                              juce::NormalisableRange<float>(0.0f, 10.0f),
+                                                              juce::NormalisableRange<float>(0.01f, 10.0f, 0.01f, 0.5f),
                                                               synthesizerState->getAmpADSR(ADSRStages::ATTACK)));
     addParameter (amp_decay = new juce::AudioParameterFloat ("amp_decay",
                                                              "AMP - Decay",
-                                                             juce::NormalisableRange<float>(0.0f, 10.0f),
+                                                             juce::NormalisableRange<float>(0.01f, 10.0f, 0.01f, 0.5f),
                                                              synthesizerState->getAmpADSR(ADSRStages::DECAY)));
     addParameter (amp_sustain = new juce::AudioParameterFloat ("amp_sustain",
                                                                "AMP - Sustain",
-                                                               juce::NormalisableRange<float>(0.0f, 10.0f),
+                                                               juce::NormalisableRange<float>(0.01f, 10.0f, 0.01f, 0.5f),
                                                                synthesizerState->getAmpADSR(ADSRStages::SUSTAIN)));
     addParameter (amp_release = new juce::AudioParameterFloat ("amp_release",
                                                                "AMP - Release",
-                                                               juce::NormalisableRange<float>(0.0f, 20.0f),
+                                                               juce::NormalisableRange<float>(0.01f, 20.0f, 0.01f, 0.5f),
                                                                synthesizerState->getAmpADSR(ADSRStages::RELEASE)));
+    
+    addParameter (filter_cutoff = new juce::AudioParameterFloat ("filter_cutoff",
+                                                               "Filter - Cutoff",
+                                                                 juce::NormalisableRange<float>(20.0f, 16000.0f, 1.0f, 0.5f),
+                                                               synthesizerState->getFilterCutoff()));
+    addParameter (filter_q = new juce::AudioParameterFloat ("filter_q",
+                                                            "Filter - Q",
+                                                            juce::NormalisableRange<float>(0.1f, 12.0f, 0.1f, 0.5f),
+                                                            synthesizerState->getFilterQ()));
 }
 
 GGranulaAudioProcessor::~GGranulaAudioProcessor()
@@ -187,6 +196,8 @@ void GGranulaAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     synthesizerState->setAmpADSR(ADSRStages::DECAY,   amp_decay->get());
     synthesizerState->setAmpADSR(ADSRStages::SUSTAIN, amp_sustain->get());
     synthesizerState->setAmpADSR(ADSRStages::RELEASE, amp_release->get());
+    synthesizerState->setFilterCutoff(filter_cutoff->get());
+    synthesizerState->setFilterQ(filter_q->get());
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...

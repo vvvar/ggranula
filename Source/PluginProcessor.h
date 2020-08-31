@@ -56,9 +56,11 @@ public:
     using QFactor   = float;
     
     //==============================================================================
-    using TransposeHandler = std::function<void(VoiceTranspose)>;
-    using WaveTypeHandler  = std::function<void(VoiceWaveType)>;
-    using ADSRHandler      = std::function<void(ADSRParam)>;
+    using TransposeHandler    = std::function<void(VoiceTranspose)>;
+    using WaveTypeHandler     = std::function<void(VoiceWaveType)>;
+    using ADSRHandler         = std::function<void(ADSRParam)>;
+    using FilterCutoffhandler = std::function<void(Frequency)>;
+    using FilterQHandler      = std::function<void(QFactor)>;
     
     //==============================================================================
     struct SynthesizerInitialState
@@ -67,12 +69,12 @@ public:
         VoiceTranspose osc_1_transpose = VoiceTranspose::NO_TRANSPOSE;
         VoiceTranspose osc_2_transpose = VoiceTranspose::NO_TRANSPOSE;
         VoiceWaveType  osc_1_wave_type = VoiceWaveType::SIN;
-        VoiceWaveType  osc_2_wave_type = VoiceWaveType::SIN;
+        VoiceWaveType  osc_2_wave_type = VoiceWaveType::SAW;
         ADSRParam      amp_attack      = 0.1f;
         ADSRParam      amp_decay       = 0.1f;
-        ADSRParam      amp_sustain     = 1.0f;
-        ADSRParam      amp_release     = 1.0f;
-        Frequency      filter_cutoff   = 1000.0f;
+        ADSRParam      amp_sustain     = 0.8f;
+        ADSRParam      amp_release     = 0.5f;
+        Frequency      filter_cutoff   = 100.0f;
         QFactor        filter_q        = 1.0f;
         unsigned int   num_of_voices   = 4;
     };
@@ -90,6 +92,25 @@ public:
         filter_q(initial_state.filter_q),
         num_of_voices(initial_state.num_of_voices)
     {}
+    ~SynthesizerState()
+    {
+        unsubscribeAllHandlers();
+    }
+    
+    //==============================================================================
+    void unsubscribeAllHandlers()
+    {
+        getTransposeHandlers(SynthOSC::FIRST_OSC).clear();
+        getTransposeHandlers(SynthOSC::SECOND_OSC).clear();
+        getWaveTypeHandlers(SynthOSC::FIRST_OSC).clear();
+        getWaveTypeHandlers(SynthOSC::SECOND_OSC).clear();
+        getAmpADSRHandlers(ADSRStages::ATTACK).clear();
+        getAmpADSRHandlers(ADSRStages::DECAY).clear();
+        getAmpADSRHandlers(ADSRStages::SUSTAIN).clear();
+        getAmpADSRHandlers(ADSRStages::RELEASE).clear();
+        filter_cutoff_handlers.clear();
+        filter_q_handlers.clear();
+    }
     
     //==============================================================================
     VoiceTranspose getTranspose(SynthOSC osc_name)
@@ -212,14 +233,56 @@ public:
         getAmpADSRHandlers(adsr_stage).push_back(handler);
     }
     
+    //==============================================================================
+    Frequency getFilterCutoff()
+    {
+        return filter_cutoff;
+    }
+    void setFilterCutoff(Frequency frequency)
+    {
+        if (filter_cutoff == frequency) return; // no-change
+        filter_cutoff = frequency;
+        for (auto handler : filter_cutoff_handlers)
+        {
+            try
+            {
+                handler(frequency);
+            } catch (...) {}
+        }
+    }
+    void onFilterCutoffChange(FilterCutoffhandler handler)
+    {
+        filter_cutoff_handlers.push_back(handler);
+    }
+    
+    //==============================================================================
+    QFactor getFilterQ()
+    {
+        return filter_q;
+    }
+    void setFilterQ(QFactor q)
+    {
+        if (filter_q == q) return; // no-change
+        filter_q = q;
+        for (auto handler : filter_q_handlers)
+        {
+            try
+            {
+                handler(q);
+            } catch (...) {}
+        }
+    }
+    void onFilterQChange(FilterQHandler handler)
+    {
+        filter_q_handlers.push_back(handler);
+    }
+    
 private:
     using TransposeHandlers = std::list<TransposeHandler>;
     using TransposeListners = std::map<SynthOSC, TransposeHandlers>;
-    
     VoiceTranspose    osc_1_transpose = VoiceTranspose::NO_TRANSPOSE;
     VoiceTranspose    osc_2_transpose = VoiceTranspose::NO_TRANSPOSE;
     TransposeListners transpose_listeners;
-    
     TransposeHandlers& getTransposeHandlers(SynthOSC osc_name)
     {
         if (transpose_listeners.count(osc_name) == 0)
@@ -254,11 +317,9 @@ private:
     //==============================================================================
     using WaveTypeHandlers  = std::list<WaveTypeHandler>;
     using WaveTypeListners  = std::map<SynthOSC, WaveTypeHandlers>;
-    
     VoiceWaveType    osc_1_wave_type = VoiceWaveType::SIN;
     VoiceWaveType    osc_2_wave_type = VoiceWaveType::SIN;
     WaveTypeListners wave_type_listeners;
-    
     WaveTypeHandlers& getWaveTypeHandlers(SynthOSC osc_name)
     {
         if (wave_type_listeners.count(osc_name) == 0)
@@ -294,13 +355,11 @@ private:
     //==============================================================================
     using ADSRHandlers    = std::list<ADSRHandler>;
     using AmpADSRListners = std::map<ADSRStages, ADSRHandlers>;
-    
     ADSRParam       amp_attack  = 0.1f;
     ADSRParam       amp_decay   = 0.1f;
     ADSRParam       amp_sustain = 1.0f;
     ADSRParam       amp_release = 1.0f;
     AmpADSRListners ampADSRListeners;
-    
     ADSRHandlers& getAmpADSRHandlers(ADSRStages adsr_stage)
     {
         if (ampADSRListeners.count(adsr_stage) == 0)
@@ -311,8 +370,16 @@ private:
     }
     
     //==============================================================================
-    Frequency      filter_cutoff   = 1000.0f;
-    QFactor        filter_q        = 1.0f;
+    using FilterCutoffHandlers = std::list<FilterCutoffhandler>;
+    Frequency            filter_cutoff = 1000.0f;
+    FilterCutoffHandlers filter_cutoff_handlers;
+    
+    //==============================================================================
+    using FilterQHandlers = std::list<FilterQHandler>;
+    QFactor         filter_q = 1.0f;
+    FilterQHandlers filter_q_handlers;
+    
+    //==============================================================================
     unsigned int   num_of_voices   = 4;
 };
 
@@ -583,7 +650,7 @@ private:
     }
     float calculateGain (float velocity)
     {
-        return velocity / 127.0f * 0.05f;
+        return velocity / 127.0f * 0.025f;
     }
     
     //==============================================================================
@@ -721,22 +788,53 @@ private:
 class SynthFilter : public IAudioProcessor
 {
 public:
-    SynthFilter (IAudioProcessor::SynthStatePtr state_ptr): IAudioProcessor(state_ptr) {};
+    SynthFilter (IAudioProcessor::SynthStatePtr state_ptr): IAudioProcessor(state_ptr)
+    {
+        using namespace std::placeholders;
+        
+        getFilter().setType(juce::dsp::StateVariableTPTFilterType::lowpass);
+        
+        setCutoff(getSynthState()->getFilterCutoff());
+        getSynthState()->onFilterCutoffChange(std::bind(&SynthFilter::setCutoff, this, _1));
+        
+        setQ(getSynthState()->getFilterQ());
+        getSynthState()->onFilterQChange(std::bind(&SynthFilter::setQ, this, _1));
+    };
     
     //==============================================================================
     void prepare (const IAudioProcessorConfig& spec) noexcept override
     {
-        *_juce_filter.state = *juce::dsp::IIR::Coefficients<BufferData>::makeLowPass (spec.juce_spec.sampleRate, 4000.0f);
-        _juce_filter.prepare(spec.juce_spec);
+        getFilter().prepare(spec.juce_spec);
     }
     void process (const IAudioProcessContext& context) noexcept override
     {
-        _juce_filter.process(context.juce_context);
+        getFilter().process(context.juce_context);
+    }
+    void reset () noexcept override
+    {
+        getFilter().reset();
+    }
+    
+    //==============================================================================
+    void setCutoff (float frequency)
+    {
+        getFilter().setCutoffFrequency(frequency);
+    }
+    void setQ (float q)
+    {
+        getFilter().setResonance(q);
     }
     
 private:
     //==============================================================================
-    juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<BufferData>, juce::dsp::IIR::Coefficients<BufferData>> _juce_filter;
+    using JuceFilter = juce::dsp::StateVariableTPTFilter<BufferData>;
+    
+    JuceFilter _juce_filter;
+    
+    JuceFilter& getFilter()
+    {
+        return _juce_filter;
+    }
 };
 
 //==============================================================================
@@ -775,7 +873,7 @@ public:
     {
         _voiceManager_1.process(context);
         processVoiceParalell(_voiceManager_2, context);
-        // _filter.process(context);
+        _filter.process(context);
     }
     void reset () noexcept override
     {
@@ -934,4 +1032,6 @@ private:
     juce::AudioParameterFloat*  amp_decay;
     juce::AudioParameterFloat*  amp_sustain;
     juce::AudioParameterFloat*  amp_release;
+    juce::AudioParameterFloat*  filter_cutoff;
+    juce::AudioParameterFloat*  filter_q;
 };

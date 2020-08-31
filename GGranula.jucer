@@ -9,6 +9,8 @@
     <GROUP id="{18EF7E94-843D-6768-DAFE-C159A03493CD}" name="Resources">
       <FILE id="wlySCY" name="krug-2.jpg" compile="0" resource="1" file="../../Desktop/krug-2.jpg"
             xcodeResource="1"/>
+      <FILE id="O909fC" name="BroVoging.jpg" compile="0" resource="1" file="../../Music/iTunes/iTunes Media/Music/BroVogue/BroVoging/BroVoging.jpg"
+            xcodeResource="1"/>
     </GROUP>
     <GROUP id="{CC577171-8749-E081-2708-AADAA2994122}" name="Source">
       <FILE id="mnk6o7" name="PluginProcessor.cpp" compile="1" resource="0"
