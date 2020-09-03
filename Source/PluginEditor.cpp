@@ -14,6 +14,10 @@ GGranulaAudioProcessorEditor::GGranulaAudioProcessorEditor (GGranulaAudioProcess
     : AudioProcessorEditor (&p),
         audioProcessor (p)
 {
+    main_panel.addOSC1TransposeListener([=](const juce::String& transpose) { audioProcessor.setOSC1TransposeParameter(transpose); });
+    main_panel.addOSC1WaveformListener([=](const juce::String& waveform) { audioProcessor.setOSC1WaveformParameter(waveform); });
+    main_panel.addOSC2TransposeListener([=](const juce::String& transpose) { audioProcessor.setOSC2TransposeParameter(transpose); });
+    main_panel.addOSC2WaveformListener([=](const juce::String& waveform) { audioProcessor.setOSC2WaveformParameter(waveform); });
     addAndMakeVisible(main_panel);
     setSize(720, 200);
 }

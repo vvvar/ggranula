@@ -149,6 +149,28 @@ public:
     {
         getTransposeHandlers(osc_name).push_back(handler);
     }
+    VoiceTranspose toVoiceTranspose(const juce::String& value)
+    {
+        if (value == "-2")
+        {
+            return VoiceTranspose::MINUS_TWO_OCTAVES;
+        } else if (value == "-1")
+        {
+            return VoiceTranspose::MINUS_ONE_OCTAVE;
+        } else if (value == "0")
+        {
+            return VoiceTranspose::NO_TRANSPOSE;
+        } else if (value == "+1")
+        {
+            return VoiceTranspose::PLUS_ONE_OCTAVE;
+        } else if (value == "+2")
+        {
+            return VoiceTranspose::PLUS_TWO_OCTAVES;
+        } else
+        {
+            return VoiceTranspose::NO_TRANSPOSE;
+        }
+    }
     
     //==============================================================================
     VoiceWaveType getWaveType(SynthOSC osc_name)
@@ -186,6 +208,29 @@ public:
     void onWaveTypeChange(SynthOSC osc_name, WaveTypeHandler handler)
     {
         getWaveTypeHandlers(osc_name).push_back(handler);
+    }
+    VoiceWaveType toVoiceWaveType(const juce::String& value)
+    {
+        if (
+            value == "Sine" |
+            value == "Sin"  |
+            value == "sine" |
+            value == "sin"
+            )
+        {
+            return VoiceWaveType::SIN;
+        } else if (
+            value == "Sawtooth" |
+            value == "Saw"  |
+            value == "sawtooth" |
+            value == "saw"
+            )
+        {
+            return VoiceWaveType::SAW;
+        } else
+        {
+            return VoiceWaveType::SIN;
+        }
     }
     
     //==============================================================================
@@ -291,28 +336,6 @@ private:
         }
         return transpose_listeners[osc_name];
     }
-    VoiceTranspose toVoiceTranspose(const juce::String& value)
-    {
-        if (value == "-2")
-        {
-            return VoiceTranspose::MINUS_TWO_OCTAVES;
-        } else if (value == "-1")
-        {
-            return VoiceTranspose::MINUS_ONE_OCTAVE;
-        } else if (value == "0")
-        {
-            return VoiceTranspose::NO_TRANSPOSE;
-        } else if (value == "+1")
-        {
-            return VoiceTranspose::PLUS_ONE_OCTAVE;
-        } else if (value == "+2")
-        {
-            return VoiceTranspose::PLUS_TWO_OCTAVES;
-        } else
-        {
-            return VoiceTranspose::NO_TRANSPOSE;
-        }
-    }
     
     //==============================================================================
     using WaveTypeHandlers  = std::list<WaveTypeHandler>;
@@ -327,29 +350,6 @@ private:
             wave_type_listeners.insert(WaveTypeListners::value_type(osc_name, WaveTypeHandlers()));
         }
         return wave_type_listeners[osc_name];
-    }
-    VoiceWaveType toVoiceWaveType(const juce::String& value)
-    {
-        if (
-            value == "Sine" |
-            value == "Sin"  |
-            value == "sine" |
-            value == "sin"
-            )
-        {
-            return VoiceWaveType::SIN;
-        } else if (
-            value == "Sawtooth" |
-            value == "Saw"  |
-            value == "sawtooth" |
-            value == "saw"
-            )
-        {
-            return VoiceWaveType::SAW;
-        } else
-        {
-            return VoiceWaveType::SIN;
-        }
     }
     
     //==============================================================================
@@ -569,6 +569,7 @@ public:
                 getOSC().initialise(genSawWave, 128);
                 break;
         }
+        getOSC().reset();
     }
     void setFrequency(int frequency)
     {
@@ -650,7 +651,7 @@ private:
     }
     float calculateGain (float velocity)
     {
-        return velocity / 127.0f * 0.025f;
+        return velocity / 127.0f * 0.05f;
     }
     
     //==============================================================================
@@ -1015,6 +1016,56 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    //==============================================================================
+    int toTransposeParameterIndex(const juce::String& transpose)
+    {
+        if (transpose == "-2")
+        {
+            return 1;
+        } else if (transpose == "-1")
+        {
+            return 2;
+        } else if (transpose == "0")
+        {
+            return 3;
+        } else if (transpose == "+1")
+        {
+            return 4;
+        } else if (transpose == "+2")
+        {
+            return 5;
+        } else
+        {
+            return 3;
+        }
+    }
+    int toWaveformParameterIndex(const juce::String& waveform)
+    {
+        if (waveform == "sin")
+        {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+    void setOSC1TransposeParameter(const juce::String& transpose)
+    {
+       *osc_1_transpose = toTransposeParameterIndex(transpose);
+    }
+    void setOSC1WaveformParameter(const juce::String& waveform)
+    {
+        *osc_1_wave = toWaveformParameterIndex(waveform);
+    }
+    void setOSC2TransposeParameter(const juce::String& transpose)
+    {
+        *osc_1_transpose = toTransposeParameterIndex(transpose);
+    }
+    void setOSC2WaveformParameter(const juce::String& waveform)
+    {
+        *osc_2_wave = toWaveformParameterIndex(waveform);
+    }
+    
+    
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GGranulaAudioProcessor)
@@ -1022,6 +1073,7 @@ private:
     //==============================================================================
     using SynthesizerStatePtr = std::shared_ptr<SynthesizerState>;
     
+    //==============================================================================
     SynthesizerStatePtr         synthesizerState;
     Synthesizer                 synthesizer;
     juce::AudioParameterChoice* osc_1_transpose;

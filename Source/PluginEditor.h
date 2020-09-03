@@ -14,7 +14,9 @@
 //==============================================================================
 /**
 */
-class GGranulaAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::FileDragAndDropTarget
+class GGranulaAudioProcessorEditor  :
+        public juce::AudioProcessorEditor,
+        public juce::FileDragAndDropTarget
 {
 public:
     GGranulaAudioProcessorEditor (GGranulaAudioProcessor&);
@@ -76,8 +78,12 @@ private:
     };
     
     //==============================================================================
-    struct TransposePanel : public BaseComponent
+    struct TransposePanel : public BaseComponent,
+                            private juce::ComboBox::Listener
     {
+        using TransposeChangeListener = std::function<void(const juce::String& transpose)>;
+        
+        //==============================================================================
         TransposePanel(juce::Colour background):
             BaseComponent(background),
             combo_box("transpose")
@@ -93,8 +99,11 @@ private:
             combo_box.addItem("+1", 4);
             combo_box.addItem("+2", 5);
             combo_box.setSelectedId(3);
+            combo_box.addListener(this);
             addAndMakeVisible(combo_box);
         }
+        
+        //==============================================================================
         void resized() override
         {
             juce::Grid grid;
@@ -107,13 +116,39 @@ private:
             };
             grid.performLayout(getLocalBounds());
         }
+        
+        //==============================================================================
+        void addListener(TransposeChangeListener listener)
+        {
+            listeners.push_back(listener);
+        }
+        
+        //==============================================================================
         juce::ComboBox combo_box;
         juce::Label    label { "transpose", "Transpose" };
+        
+    private:
+        std::list<TransposeChangeListener> listeners;
+        
+        //==============================================================================
+        void comboBoxChanged (ComboBox* comboBoxThatHasChanged) override
+        {
+            for (auto listener : listeners)
+            {
+                try {
+                    listener(comboBoxThatHasChanged->getText());
+                } catch (...) {}
+            }
+        }
     };
     
     //==============================================================================
-    struct WaveformPanel : public BaseComponent
+    struct WaveformPanel :  public BaseComponent,
+                            private juce::ComboBox::Listener
     {
+        using WaveformChangeListener = std::function<void(const juce::String& wavefrom)>;
+        
+        //==============================================================================
         WaveformPanel(juce::Colour background):
             BaseComponent(background),
             combo_box("waveform")
@@ -126,8 +161,11 @@ private:
             combo_box.addItem("sin", 1);
             combo_box.addItem("saw", 2);
             combo_box.setSelectedId(1);
+            combo_box.addListener(this);
             addAndMakeVisible(combo_box);
         }
+        
+        //==============================================================================
         void resized() override
         {
             juce::Grid grid;
@@ -140,8 +178,30 @@ private:
             };
             grid.performLayout(getLocalBounds());
         }
+        
+        //==============================================================================
+        void addListener(WaveformChangeListener listener)
+        {
+            listeners.push_back(listener);
+        }
+        
+        //==============================================================================
         juce::ComboBox combo_box;
         juce::Label    label { "waveform", "Waveform" };
+        
+    private:
+        std::list<WaveformChangeListener> listeners;
+        
+        //==============================================================================
+        void comboBoxChanged (ComboBox* comboBoxThatHasChanged) override
+        {
+            for (auto listener : listeners)
+            {
+                try {
+                    listener(comboBoxThatHasChanged->getText());
+                } catch (...) {}
+            }
+        }
     };
     
     //==============================================================================
@@ -255,7 +315,6 @@ private:
             auto font = getPanelNameFont();
             label.setColour(juce::Label::ColourIds::textColourId, font.colour);
             label.setFont(Font(font.name, font.size, font.style));
-            // label.setJustificationType(Justification::topLeft);
             addAndMakeVisible(label);
             
             cutoff.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
@@ -414,6 +473,27 @@ private:
             grid.templateColumns = { Track (Fr (1)), Track (Fr (1)) };
             grid.items = { Item(osc_panel).withMargin(10), Item(filter_adsr_panel).withMargin(10) };
             grid.performLayout (getLocalBounds());
+        }
+        
+        //==============================================================================
+        using TransposeChangeListener = std::function<void(const juce::String& transpose)>;
+        using WaveformChangeListener  = std::function<void(const juce::String& wavefrom)>;
+        
+        void addOSC1TransposeListener(TransposeChangeListener listener)
+        {
+            osc_panel.osc_1_panel.transpose_panel.addListener(listener);
+        }
+        void addOSC1WaveformListener(WaveformChangeListener listener)
+        {
+            osc_panel.osc_1_panel.waveform_panel.addListener(listener);
+        }
+        void addOSC2TransposeListener(TransposeChangeListener listener)
+        {
+            osc_panel.osc_2_panel.transpose_panel.addListener(listener);
+        }
+        void addOSC2WaveformListener(WaveformChangeListener listener)
+        {
+            osc_panel.osc_2_panel.waveform_panel.addListener(listener);
         }
         
         //==============================================================================
