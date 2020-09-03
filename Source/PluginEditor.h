@@ -273,55 +273,72 @@ private:
     };
     
     //==============================================================================
-    struct CutoffPanel : public BaseComponent
+    struct CutoffPanel : public BaseComponent,
+                         private juce::Slider::Listener
     {
-        CutoffPanel(juce::Colour background) :
+        using CutoffListener = std::function<void(double)>;
+        
+        //==============================================================================
+        CutoffPanel (juce::Colour background) :
             BaseComponent(background),
             cutoff("Cutoff")
         {
-            auto font = getPanelNameFont();
-            label.setColour(juce::Label::ColourIds::textColourId, font.colour);
-            label.setFont(Font(font.name, font.size, font.style));
-            label.setJustificationType(Justification::topLeft);
-            addAndMakeVisible(label);
-            
             cutoff.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
             cutoff.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50.0f, 20.0f);
             cutoff.setSkewFactor(0.25f);
             cutoff.setRange(Range<double>(10.0f, 16000.0f), 1.0f);
+            cutoff.addListener(this);
             addAndMakeVisible(cutoff);
         }
-        void resized() override
+        
+        //==============================================================================
+        void resized () override
         {
             juce::Grid grid;
-            grid.templateRows    = { Track (Fr (1)), Track (Fr (1)) };
+            grid.templateRows    = { Track (Fr (1)) };
             grid.templateColumns = { Track (Fr (1)) };
             grid.items =
             {
-                Item(label),
                 Item(cutoff)
             };
             grid.performLayout(getLocalBounds());
         }
-        juce::Label  label { "cutoff", "Cutoff" };
+        void addListener (CutoffListener listener)
+        {
+            listeners.push_back(listener);
+        }
+        
+        //==============================================================================
         juce::Slider cutoff;
+        
+    private:
+        std::list<CutoffListener> listeners;
+        
+        //==============================================================================
+        void sliderValueChanged (Slider* slider) override
+        {
+            for (auto listener : listeners)
+            {
+                try {
+                    listener(slider->getValue());
+                } catch (...) {}
+            }
+        }
     };
     
     //==============================================================================
     struct FilterPanel : public BaseComponent
     {
-        FilterPanel(juce::Colour background) : BaseComponent(background)
+        FilterPanel(juce::Colour background) :
+            BaseComponent(background),
+            cutoff_panel(background)
         {
             auto font = getPanelNameFont();
             label.setColour(juce::Label::ColourIds::textColourId, font.colour);
             label.setFont(Font(font.name, font.size, font.style));
             addAndMakeVisible(label);
             
-            cutoff.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
-            cutoff.setTextBoxStyle(juce::Slider::TextBoxRight, true, 50, 30);
-            cutoff.setSkewFactor(0.25f);
-            cutoff.setRange(Range<double>(10.0f, 16000.0f), 1.0f);
-            addAndMakeVisible(cutoff);
+            addAndMakeVisible(cutoff_panel);
             
             q.setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
             q.setTextBoxStyle(juce::Slider::TextBoxRight, true, 35.0f, 20.0f);
@@ -338,13 +355,13 @@ private:
             {
                 Item(label).withMargin(8),
                 Item(),
-                Item(cutoff),
+                Item(cutoff_panel),
                 Item(q).withMargin(Margin(0, 20, 0, 0))
             };
             grid.performLayout(getLocalBounds());
         }
         juce::Label  label  { "filter", "Filter" };
-        juce::Slider cutoff { "cutoff" };
+        CutoffPanel  cutoff_panel;
         juce::Slider q      { "q" };
     };
     
@@ -478,6 +495,7 @@ private:
         //==============================================================================
         using TransposeChangeListener = std::function<void(const juce::String& transpose)>;
         using WaveformChangeListener  = std::function<void(const juce::String& wavefrom)>;
+        using CutoffListener          = std::function<void(double)>;
         
         void addOSC1TransposeListener(TransposeChangeListener listener)
         {
@@ -495,12 +513,17 @@ private:
         {
             osc_panel.osc_2_panel.waveform_panel.addListener(listener);
         }
+        void addCutoffListener(CutoffListener listener)
+        {
+            filter_adsr_panel.filter_panel.cutoff_panel.addListener(listener);
+        }
         
         //==============================================================================
         OscillatorsPanel osc_panel;
-        FilterAmpPanel  filter_adsr_panel;
+        FilterAmpPanel   filter_adsr_panel;
     };
     
+    //==============================================================================
     MainPanel main_panel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GGranulaAudioProcessorEditor)

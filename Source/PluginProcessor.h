@@ -1064,6 +1064,10 @@ public:
     {
         *osc_2_wave = toWaveformParameterIndex(waveform);
     }
+    void setCutoffParameter(float cutoff)
+    {
+        *filter_cutoff = cutoff;
+    }
     
     
 private:
